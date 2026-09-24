@@ -175,7 +175,6 @@ const DEFAULTS = {
     "🌸 Mi mente te piensa, mi corazón te siente.",
     "💜 Te Amo Yara.",
   ],
-  fotos: ["assets/img1.png","assets/img2.png","assets/img3.png"],
   musica: "assets/musica.m4a"
 };
 const CONFIG=(window.DEDICA&&window.DEDICA.merge)?window.DEDICA.merge(DEFAULTS,window.DEDICA.config):DEFAULTS;
@@ -368,50 +367,6 @@ document.fonts.load("40px 'Indie Flower'").catch(()=>{}).then(()=>{
   }
 });
 
-// Fotos del cliente flotando de forma individual (reemplazan a los emojis de
-// la version original). Minimo 1, maximo 3 (plantilla gratuita, ver
-// schema.json) - se reparten ciclicamente (i % cantidad) entre las 26
-// posiciones fijas que la escena ya reserva, igual que antes hacian los
-// emojis, asi que menos fotos simplemente se repiten mas seguido sin que la
-// escena se vea mas vacia.
-const fotosBase=(Array.isArray(CONFIG.fotos)&&CONFIG.fotos.length)?CONFIG.fotos:DEFAULTS.fotos;
-function makePhotoSprite(url,size){
-  const c=document.createElement('canvas');c.width=c.height=256;
-  const tex=new THREE.CanvasTexture(c);
-  const mat=new THREE.SpriteMaterial({map:tex,transparent:true});
-  const sp=new THREE.Sprite(mat);
-  sp.scale.set(size,size,1);
-  const img=new Image();img.crossOrigin='anonymous';
-  img.onload=()=>{
-    const ctx=c.getContext('2d');
-    ctx.clearRect(0,0,c.width,c.height);
-    // "contain": la foto entra completa sin recortar ningun borde (lo que
-    // sobra en el lienzo cuadrado queda transparente); el sprite se encoge
-    // en el eje sobrante para que no se note como un marco cuadrado vacio.
-    const s=Math.min(c.width/img.width,c.height/img.height);
-    ctx.drawImage(img,(c.width-img.width*s)/2,(c.height-img.height*s)/2,img.width*s,img.height*s);
-    tex.needsUpdate=true;
-    const aspect=img.naturalWidth/img.naturalHeight;
-    const aX=Math.min(1,aspect),aY=Math.min(1,1/aspect);
-    sp.scale.set(size*aX,size*aY,1);
-  };
-  img.onerror=()=>{};
-  img.src=url;
-  return sp;
-}
-const photoGroup=new THREE.Group();scene.add(photoGroup);
-const PHOTO_COUNT=26;
-for(let i=0;i<PHOTO_COUNT;i++){
-  const url=fotosBase[i%fotosBase.length];
-  const size=28+Math.random()*20;
-  const sp=makePhotoSprite(url,size);
-  const phi=Math.acos(2*Math.random()-1);const theta=Math.random()*Math.PI*2;
-  const r=140+Math.random()*170;
-  sp.position.set(r*Math.sin(phi)*Math.cos(theta),r*Math.cos(phi),r*Math.sin(phi)*Math.sin(theta));
-  sp.userData={phi:phi,theta:theta,radius:r,speed:0.0006+Math.random()*0.0012};
-  photoGroup.add(sp);
-}
-
 // Controles cámara — dirección corregida: ahora sigue el lado hacia donde deslizas
 let dragging=false,lastX=0,lastY=0;
 function onDown(e){dragging=true;const t=e.touches?e.touches[0]:e;lastX=t.clientX;lastY=t.clientY;}
@@ -444,16 +399,6 @@ function tick(){requestAnimationFrame(tick);t+=0.01;
   core.scale.set(s,s,s);
   textGroup.children.forEach(sp=>{
     sp.material.opacity=0.8+0.2*Math.sin(t*2);
-    sp.userData.theta+=sp.userData.speed;
-    sp.position.x=sp.userData.radius*Math.sin(sp.userData.phi)*Math.cos(sp.userData.theta);
-    sp.position.z=sp.userData.radius*Math.sin(sp.userData.phi)*Math.sin(sp.userData.theta);
-  });
-  photoGroup.children.forEach(sp=>{
-    sp.material.opacity=0.85+0.15*Math.sin(t*2+sp.userData.radius);
-    // Sin rotacion propia: a diferencia de un emoji (simetrico, giraba bien
-    // como si fuera un pinwheel), una foto real con forma reconocible se ve
-    // rara/como "estirada" al girar sobre su propio eje en ciertos angulos -
-    // se quita, la foto solo orbita y flota, se queda siempre derecha.
     sp.userData.theta+=sp.userData.speed;
     sp.position.x=sp.userData.radius*Math.sin(sp.userData.phi)*Math.cos(sp.userData.theta);
     sp.position.z=sp.userData.radius*Math.sin(sp.userData.phi)*Math.sin(sp.userData.theta);
